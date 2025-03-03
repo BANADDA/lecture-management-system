@@ -1,0 +1,63 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.main-content {
+    display: flex;
+    flex: 1;
+}
+
+.dashboard-content {
+    flex: 1;
+    padding: 0.75rem;
+}
+
+footer {
+    margin-top: auto;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-top: 50px;
+}
+
+.card-header {
+    padding: 20px;
+    background: linear-gradient(135deg, #4a148c, #7b1fa2);
+}
+
+.card-header h3 {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.card-header p {
+    font-size: 16px;
+    opacity: 0.8;
+}
+
+.btn-primary {
+    background-color: #7b1fa2;
+    border-color: #7b1fa2;
+}
+
+.btn-primary:hover {
+    background-color: #4a148c;
+    border-color: #4a148c;
+}
+
+.form-control:focus {
+    border-color: #7b1fa2;
+    box-shadow: 0 0 0 0.25rem rgba(123, 31, 162, 0.25);
+}
