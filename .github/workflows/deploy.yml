@@ -1,0 +1,43 @@
+name: Deploy to cPanel
+
+on:
+  push:
+    branches: [ main ]  # Change to your main branch name if different
+
+jobs:
+  web-deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get latest code
+      uses: actions/checkout@v3
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'  # Adjust to match your server's PHP version
+
+    - name: Install Dependencies
+      run: composer install --no-dev --optimize-autoloader
+
+    - name: Generate application key
+      run: |
+        cp .env.example .env
+        php artisan key:generate
+
+    - name: Directory Permissions
+      run: chmod -R 755 storage bootstrap/cache
+
+    - name: Sync files
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        server-dir: public_html/  # Adjust to your desired directory
+        exclude: |
+          **/.git*
+          **/.git*/**
+          **/node_modules/**
+          .env.example
+          .env
