@@ -1,9 +1,7 @@
 name: Deploy to cPanel
-
 on:
   push:
     branches: [ main ]  # Change to your main branch name if different
-
 jobs:
   web-deploy:
     name: Deploy
@@ -28,6 +26,23 @@ jobs:
     - name: Directory Permissions
       run: chmod -R 755 storage bootstrap/cache
 
+    - name: Configure index.php for deployment
+      run: |
+        # Make a copy of public/index.php
+        cp public/index.php public/index.php.bak
+        # Update paths in the public/index.php file
+        sed -i 's|require __DIR__.\'/../vendor/autoload.php\';|require __DIR__.\'/../vendor/autoload.php\';|g' public/index.php
+        sed -i 's|$app = require_once __DIR__.\'/../bootstrap/app.php\';|$app = require_once __DIR__.\'/../bootstrap/app.php\';|g' public/index.php
+
+    - name: Create additional .htaccess file
+      run: |
+        echo '<IfModule mod_rewrite.c>
+            RewriteEngine On
+            RewriteBase /timetable/
+            RewriteCond %{REQUEST_URI} !^/timetable/public/
+            RewriteRule ^(.*)$ public/$1 [L]
+        </IfModule>' > .htaccess
+
     - name: Sync files
       uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       with:
@@ -40,4 +55,3 @@ jobs:
           **/.git*/**
           **/node_modules/**
           .env.example
-          .env
