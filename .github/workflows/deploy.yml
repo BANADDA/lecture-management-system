@@ -16,7 +16,10 @@ jobs:
         php-version: '8.2'  # Adjust to match your server's PHP version
 
     - name: Install Dependencies
-      run: composer install --no-dev --optimize-autoloader
+      run: composer install --no-dev --optimize-autoloader --ignore-platform-reqs
+
+    - name: Update Dependencies
+      run: composer update --ignore-platform-reqs
 
     - name: Generate application key
       run: |
