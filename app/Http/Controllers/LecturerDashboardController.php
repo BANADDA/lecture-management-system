@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Illuminate\Support\Facades\DB;
 
 class LecturerDashboardController extends Controller
 {
@@ -95,6 +96,75 @@ class LecturerDashboardController extends Controller
                 : 0;
         }
 
+        // Get calendar events (lectures) - only for this lecturer
+        $lectures = Lecture::with(['course', 'lecturer'])
+            ->where('lecturer_id', $lecturer->id)
+            ->whereDate('start_time', '>=', now()->subDays(30))
+            ->whereDate('start_time', '<=', now()->addDays(60))
+            ->get();
+
+        // Format lectures for the calendar
+        $calendarEvents = [];
+        foreach ($lectures as $lecture) {
+            // Set color based on lecture status
+            $borderColor = '';
+            if ($lecture->is_completed) {
+                $borderColor = '#6c757d'; // gray for completed
+            } elseif ($lecture->is_ongoing) {
+                $borderColor = '#28a745'; // green for ongoing
+            } else {
+                $borderColor = '#007bff'; // blue for upcoming
+            }
+
+            // We'll let the CSS handle the colors through class assignment
+            // Just set some extended properties to help with this
+
+            // Calculate duration for display
+            $duration = $lecture->start_time->diffInMinutes($lecture->end_time);
+            $durationHours = floor($duration / 60);
+            $durationMinutes = $duration % 60;
+            $durationText = '';
+
+            if ($durationHours > 0) {
+                $durationText = $durationHours . ' hr' . ($durationHours > 1 ? 's' : '');
+                if ($durationMinutes > 0) {
+                    $durationText .= ' ' . $durationMinutes . ' min';
+                }
+            } else {
+                $durationText = $durationMinutes . ' min';
+            }
+
+            // Get room number for display in the title
+            $room = $lecture->room ?? 'TBA';
+
+            // Create formatted calendar event
+            $calendarEvents[] = [
+                'id' => $lecture->id,
+                'title' => $lecture->course->code . ' - ' . $room,
+                'start' => $lecture->start_time->toIso8601String(),
+                'end' => $lecture->end_time->toIso8601String(),
+                'borderColor' => $borderColor,
+                'description' => '<strong>Course:</strong> ' . $lecture->course->name .
+                                '<br><strong>Room:</strong> ' . $room .
+                                '<br><strong>Time:</strong> ' . $lecture->formatted_start_time . ' - ' . $lecture->formatted_end_time .
+                                '<br><strong>Duration:</strong> ' . $durationText .
+                                '<br><strong>Department:</strong> ' . ($lecture->course->department_name ?? 'N/A'),
+                'extendedProps' => [
+                    'course_id' => $lecture->course->id,
+                    'course_name' => $lecture->course->name,
+                    'lecturer_name' => $lecture->lecturer->full_name,
+                    'department_id' => $lecture->course->department_id ?? 0,
+                    'department_name' => $lecture->course->department_name ?? 'N/A',
+                    'room' => $room,
+                    'duration' => $durationText,
+                    'duration_minutes' => $duration,
+                    'is_completed' => $lecture->is_completed,
+                    'is_ongoing' => $lecture->is_ongoing,
+                    'attendance_percentage' => $lecture->attendance_percentage ?? 0
+                ]
+            ];
+        }
+
         return view('lecturer.dashboard', compact(
             'upcomingLectures',
             'todayLectures',
@@ -102,7 +172,8 @@ class LecturerDashboardController extends Controller
             'activeCourses',
             'stats',
             'attendanceByCourseCounts',
-            'attendanceByCoursePcts'
+            'attendanceByCoursePcts',
+            'calendarEvents'
         ));
     }
 
@@ -182,9 +253,12 @@ class LecturerDashboardController extends Controller
             return back()->withErrors(['current_password' => 'The current password is incorrect.']);
         }
 
-        $user->update([
-            'password' => Hash::make($request->password),
-        ]);
+        // Update password in the database
+        DB::table('users')
+            ->where('id', $user->id)
+            ->update([
+                'password' => Hash::make($request->password),
+            ]);
 
         return redirect()->route('lecturer.profile')->with('success', 'Password updated successfully.');
     }
